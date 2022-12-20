@@ -301,9 +301,3 @@ public sealed class Database
 {
     public List<ActivityEvent> Events { get; set; } = new List<ActivityEvent>();
 }
-
-public sealed record Streak(
-    string ActivityId,
-    int StreakLengthDays,
-    TimeSpan StreakBreaksInDays,
-    DateTimeOffset lastHappenedAt);
