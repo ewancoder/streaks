@@ -106,7 +106,18 @@ while (true)
 
     Console.WriteLine($"{"Activity",-20}{"Need to do",-15}{"In time",-50}{"Next cycle starts at"}");
     var color = ConsoleColor.DarkGray;
-    foreach (var streak in streaks.OrderBy(x => x.AbsoluteDeadLine))
+
+    foreach (var streak in streaks.Where(x => !x.DoneThisStreak).OrderBy(x => x.AbsoluteDeadLine))
+    {
+        color = color == ConsoleColor.DarkGray ? ConsoleColor.Black : ConsoleColor.DarkGray;
+        Console.BackgroundColor = color;
+
+        Console.WriteLine($"{streak.ActivityId,-20}{(streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo),-15}{GetHumanTime(streak.AbsoluteDeadLine-DateTime.Now),-50}{(streak.DoneThisStreak ? streak.NextCycleStartsAt : "")}");
+    }
+
+    Console.WriteLine();
+
+    foreach (var streak in streaks.Where(x => x.DoneThisStreak).OrderBy(x => x.AbsoluteDeadLine))
     {
         color = color == ConsoleColor.DarkGray ? ConsoleColor.Black : ConsoleColor.DarkGray;
         Console.BackgroundColor = color;
