@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 
+Console.ForegroundColor = ConsoleColor.White;
 while (true)
 {
     if (!File.Exists("db"))
