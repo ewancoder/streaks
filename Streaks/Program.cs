@@ -88,6 +88,7 @@ while (true)
     }
 
     Console.Clear();
+    Console.BackgroundColor = ConsoleColor.Black;
     Console.WriteLine("== Activities ==");
     Console.WriteLine();
 
@@ -105,7 +106,18 @@ while (true)
     Console.WriteLine();
 
     Console.WriteLine($"{"Activity",-20}{"Need to do",-15}{"In time",-50}{"Next cycle starts at"}");
+    Console.WriteLine();
     var color = ConsoleColor.DarkGray;
+
+    foreach (var activity in activities.Values.Where(x => !streaks.Any(s => s.ActivityId == x.ActivityId)).OrderBy(x => x.ActivityId))
+    {
+        color = color == ConsoleColor.DarkGray ? ConsoleColor.Black : ConsoleColor.DarkGray;
+        Console.BackgroundColor = color;
+
+        Console.WriteLine($"{activity.ActivityId,-20}{activity.Description}");
+    }
+
+    Console.WriteLine();
 
     foreach (var streak in streaks.Where(x => !x.DoneThisStreak).OrderBy(x => x.AbsoluteDeadLine))
     {
@@ -124,6 +136,9 @@ while (true)
 
         Console.WriteLine($"{streak.ActivityId,-20}{(streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo),-15}{GetHumanTime(streak.AbsoluteDeadLine-DateTime.Now),-50}{(streak.DoneThisStreak ? streak.NextCycleStartsAt : "")}");
     }
+
+    Console.BackgroundColor = ConsoleColor.Black;
+    Console.WriteLine();
 
     string GetHumanTime(TimeSpan timespan)
     {
@@ -145,8 +160,6 @@ while (true)
 
         return sb.ToString();
     }
-
-    Console.WriteLine();
 
     var command = Console.ReadLine();
     if (command == null)
