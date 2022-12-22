@@ -5,6 +5,8 @@ using System.Text.Json;
 var eventStore = new EventStore()
     .AddCache();
 
+var activityRepository = new ActivityRepository(eventStore);
+
 Console.ForegroundColor = ConsoleColor.White;
 while (true)
 {
@@ -13,7 +15,6 @@ while (true)
     var cts = new CancellationTokenSource();
     var events = await eventStore.GetAllEventsAsync(cts.Token);
 
-    var activities = new Dictionary<string, Activity>();
     var streaks = new List<StreakInfo>();
     foreach (var activityEvents in events.GroupBy(x => x.ActivityId))
     {
@@ -79,8 +80,6 @@ while (true)
 
         if (streakInfo != null)
             streaks.Add(streakInfo);
-
-        activities.Add(activityEvents.Key, new Activity(activityEvents.Key, desiredAmount, description, cycleLength, started));
     }
 
     Console.Clear();
@@ -89,7 +88,9 @@ while (true)
     Console.WriteLine();
 
     Console.WriteLine($"{"Activity",-20}\t{"Desired",-8}\t{"Active",-6}\t{"Period",-6}\t{"Description"}");
-    foreach (var activity in activities.Values.OrderBy(x => x.ActivityId))
+
+    var activities = await activityRepository.FindAllAsync(cts.Token);
+    foreach (var activity in activities.OrderBy(x => x.ActivityId))
     {
         Console.WriteLine($"{activity.ActivityId,-20}\t{activity.DesiredAmount,-8}\t{activity.Active,-6}\t{activity.Period,-6}\t{activity.Description}");
     }
@@ -106,7 +107,7 @@ while (true)
     var alternativeColor = ConsoleColor.DarkGray;
     var color = alternativeColor;
 
-    foreach (var activity in activities.Values.Where(x => !streaks.Any(s => s.ActivityId == x.ActivityId)).OrderBy(x => x.ActivityId))
+    foreach (var activity in activities.Where(x => !streaks.Any(s => s.ActivityId == x.ActivityId)).OrderBy(x => x.ActivityId))
     {
         color = color == alternativeColor ? ConsoleColor.Black : alternativeColor;
         Console.BackgroundColor = color;
