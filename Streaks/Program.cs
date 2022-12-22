@@ -1,26 +1,20 @@
-﻿using System.Text;
+﻿using Streaks;
+using System.Text;
 using System.Text.Json;
+
+var eventStore = new EventStore();
 
 Console.ForegroundColor = ConsoleColor.White;
 while (true)
 {
-    if (!File.Exists("db"))
-        await File.WriteAllTextAsync("db", "{}");
-
     var startOfDay = 3; // 3 hours in the morning, by GMT timezone (6 hours in the morning GMT+3).
 
-    Database events;
-    using (var stream = File.OpenRead("db"))
-    {
-        events = await JsonSerializer.DeserializeAsync<Database>(stream) ?? throw new InvalidOperationException("Database deserialization failed.");
-    }
-
-    if (events == null)
-        throw new InvalidOperationException("Database deserialization failed.");
+    var cts = new CancellationTokenSource();
+    var events = await eventStore.GetAllEventsAsync(cts.Token);
 
     var activities = new Dictionary<string, Activity>();
     var streaks = new List<StreakInfo>();
-    foreach (var activityEvents in events.Events.GroupBy(x => x.ActivityId))
+    foreach (var activityEvents in events.GroupBy(x => x.ActivityId))
     {
         var started = false;
         var desiredAmount = 0;
@@ -175,8 +169,9 @@ while (true)
         var period = Convert.ToInt32(activity[2]);
         var description = string.Join(' ', activity.Skip(3));
 
-        events.Events.Add(new ActivityEvent(
-            activityId, ActivityEventType.Started, DateTimeOffset.Now, activityDesiredAmount, description, 0, period));
+        await eventStore.AddEventAsync(new ActivityEvent(
+            activityId, ActivityEventType.Started, DateTimeOffset.Now, activityDesiredAmount, description, 0, period),
+            cts.Token);
     }
 
     if (command.StartsWith("do "))
@@ -185,13 +180,9 @@ while (true)
         var activityId = activity[0];
         var amount = Convert.ToInt32(activity[1]);
 
-        events.Events.Add(new ActivityEvent(
-            activityId, ActivityEventType.Performed, DateTimeOffset.Now, 0, string.Empty, amount, 0));
-    }
-
-    using (var stream = File.OpenWrite("db"))
-    {
-        await JsonSerializer.SerializeAsync(stream, events);
+        await eventStore.AddEventAsync(new ActivityEvent(
+            activityId, ActivityEventType.Performed, DateTimeOffset.Now, 0, string.Empty, amount, 0),
+            cts.Token);
     }
 
     StreakInfo? CalculateStreakInfo(string activity, int cycleLength, int desiredAmount, IEnumerable<StreakDay> days)
@@ -295,24 +286,3 @@ public sealed record Activity(
     string Description,
     int Period,
     bool Active);
-
-public enum ActivityEventType
-{
-    Started = 1,
-    Performed = 2,
-    Stopped = 3
-}
-
-public sealed record ActivityEvent(
-    string ActivityId,
-    ActivityEventType Type,
-    DateTimeOffset HappenedAt,
-    int ActivityStartedDesiredAmount,
-    string Description,
-    int Amount,
-    int PeriodDays);
-
-public sealed class Database
-{
-    public List<ActivityEvent> Events { get; set; } = new List<ActivityEvent>();
-}
