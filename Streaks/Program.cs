@@ -2,7 +2,8 @@
 using System.Text;
 using System.Text.Json;
 
-var eventStore = new EventStore();
+var eventStore = new EventStore()
+    .AddCache();
 
 Console.ForegroundColor = ConsoleColor.White;
 while (true)

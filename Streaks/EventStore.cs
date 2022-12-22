@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace Streaks
 {
@@ -105,6 +106,49 @@ namespace Streaks
             await @lock.WaitAsync(cancellationToken);
 
             return wrapper;
+        }
+    }
+
+    internal sealed class CachedEventStore : IEventStore
+    {
+        private readonly IEventStore _eventStore;
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
+        private IEnumerable<ActivityEvent>? _events;
+
+        public CachedEventStore(IEventStore eventStore)
+        {
+            _eventStore = eventStore;
+        }
+
+        public async ValueTask AddEventAsync(ActivityEvent @event, CancellationToken cancellationToken)
+        {
+            using var @lock = await _lock.LockAsync(cancellationToken);
+
+            _events = null;
+            await _eventStore.AddEventAsync(@event, cancellationToken);
+        }
+
+        public async ValueTask<IEnumerable<ActivityEvent>> GetAllEventsAsync(CancellationToken cancellationToken)
+        {
+            using var @lock = await _lock.LockAsync(cancellationToken);
+
+            if (_events == null)
+                await ReloadCacheAsync(cancellationToken);
+
+            return _events;
+        }
+
+        private async ValueTask ReloadCacheAsync(CancellationToken cancellationToken)
+        {
+            _events = await _eventStore.GetAllEventsAsync(cancellationToken);
+        }
+    }
+
+    internal static class CachedEventStoreExtensions
+    {
+        public static IEventStore AddCache(this IEventStore eventStore)
+        {
+            return new CachedEventStore(eventStore);
         }
     }
 }
