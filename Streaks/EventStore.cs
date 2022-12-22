@@ -66,19 +66,16 @@ namespace Streaks
         {
             await CreateDatabaseIfNotExists(cancellationToken);
 
-            using (var stream = File.OpenRead(_filePath))
-            {
-                return await JsonSerializer.DeserializeAsync<Database>(stream, cancellationToken: cancellationToken)
-                    ?? throw new InvalidOperationException("Could not deserialize the database.");
-            }
+            var serialized = await File.ReadAllTextAsync(_filePath, cancellationToken);
+            return JsonSerializer.Deserialize<Database>(serialized)
+                ?? throw new InvalidOperationException("Could not deserialize the database.");
         }
 
         private async ValueTask SaveDatabaseAsync(Database database, CancellationToken cancellationToken)
         {
-            using (var stream = File.OpenWrite(_filePath))
-            {
-                await JsonSerializer.SerializeAsync(stream, database, cancellationToken: cancellationToken);
-            }
+            var serialized = JsonSerializer.Serialize(database);
+
+            await File.WriteAllTextAsync(_filePath, serialized, cancellationToken);
         }
     }
 
