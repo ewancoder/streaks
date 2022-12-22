@@ -253,7 +253,7 @@ while (true)
         var nextCycleStartsAt = shouldFinishOn;
         if (desiredAmount - amount <= 0)
             shouldFinishOn = DateOnly.FromDayNumber(shouldFinishOn.DayNumber + cycleLength);
-        nextCycleStartsAt = DateOnly.FromDayNumber(nextCycleStartsAt.DayNumber + cycleLength - 1);
+        //nextCycleStartsAt = DateOnly.FromDayNumber(nextCycleStartsAt.DayNumber + cycleLength - 1);
 
         var deadline = shouldFinishOn.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)
             .AddDays(1)
