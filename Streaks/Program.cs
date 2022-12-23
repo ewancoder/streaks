@@ -171,9 +171,8 @@ while (true)
         var period = Convert.ToInt32(activity[2]);
         var description = string.Join(' ', activity.Skip(3));
 
-        await eventStore.AddEventAsync(new ActivityEvent(
-            activityId, ActivityEventType.Started, DateTimeOffset.Now, activityDesiredAmount, description, 0, period),
-            cts.Token);
+        await activityRepository.SaveAsync(new Activity(
+            activityId, activityDesiredAmount, description, period, true), cts.Token);
     }
 
     if (command.StartsWith("do "))
