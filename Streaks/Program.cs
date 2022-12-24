@@ -11,10 +11,7 @@ var streakCalculator = new StreakCalculator(eventStore);
 Console.ForegroundColor = ConsoleColor.White;
 while (true)
 {
-    var startOfDay = 3; // 3 hours in the morning, by GMT timezone (6 hours in the morning GMT+3).
-
     var cts = new CancellationTokenSource();
-    var events = await eventStore.GetAllEventsAsync(cts.Token);
 
     var streaks = await streakCalculator.CalculateCurrentStreaksAsync(cts.Token);
 
