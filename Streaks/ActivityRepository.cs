@@ -1,10 +1,17 @@
 ﻿namespace Streaks;
 
-public interface IActivityRepository
+internal interface IActivityRepository
 {
     ValueTask<IEnumerable<Activity>> FindAllAsync(CancellationToken cancellationToken);
     ValueTask SaveAsync(Activity activity, CancellationToken cancellationToken);
 }
+
+internal sealed record Activity(
+    string ActivityId,
+    int DesiredAmount,
+    string Description,
+    int Period,
+    bool Active);
 
 internal sealed class ActivityRepository : IActivityRepository
 {
