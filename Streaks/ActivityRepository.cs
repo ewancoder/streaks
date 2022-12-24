@@ -3,7 +3,8 @@
 internal interface IActivityRepository
 {
     ValueTask<IEnumerable<Activity>> FindAllAsync(CancellationToken cancellationToken);
-    ValueTask SaveAsync(Activity activity, CancellationToken cancellationToken);
+    ValueTask AddActivityAsync(Activity activity, CancellationToken cancellationToken);
+    ValueTask PerformActivityAsync(string activityId, int amount, CancellationToken cancellationToken);
 }
 
 internal sealed record Activity(
@@ -55,7 +56,7 @@ internal sealed class ActivityRepository : IActivityRepository
         return activities.Values;
     }
 
-    public ValueTask SaveAsync(Activity activity, CancellationToken cancellationToken)
+    public ValueTask AddActivityAsync(Activity activity, CancellationToken cancellationToken)
     {
         return _store.AddEventAsync(new ActivityEvent(
             activity.ActivityId,
@@ -65,5 +66,18 @@ internal sealed class ActivityRepository : IActivityRepository
             activity.Description,
             0,
             activity.Period), cancellationToken);
+    }
+
+    public ValueTask PerformActivityAsync(string activityId, int amount, CancellationToken cancellationToken)
+    {
+        return _store.AddEventAsync(new ActivityEvent(
+            activityId,
+            ActivityEventType.Performed,
+            DateTimeOffset.Now,
+            0,
+            string.Empty,
+            amount,
+            0),
+            cancellationToken);
     }
 }

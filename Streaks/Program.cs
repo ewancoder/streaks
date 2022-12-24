@@ -107,7 +107,7 @@ while (true)
         var period = Convert.ToInt32(activity[2]);
         var description = string.Join(' ', activity.Skip(3));
 
-        await activityRepository.SaveAsync(new Activity(
+        await activityRepository.AddActivityAsync(new Activity(
             activityId, activityDesiredAmount, description, period, true), cts.Token);
     }
 
@@ -117,8 +117,6 @@ while (true)
         var activityId = activity[0];
         var amount = Convert.ToInt32(activity[1]);
 
-        await eventStore.AddEventAsync(new ActivityEvent(
-            activityId, ActivityEventType.Performed, DateTimeOffset.Now, 0, string.Empty, amount, 0),
-            cts.Token);
+        await activityRepository.PerformActivityAsync(activityId, amount, cts.Token);
     }
 }
