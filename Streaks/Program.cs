@@ -2,11 +2,9 @@
 using System.Text;
 using System.Text.Json;
 
-var eventStore = new EventStore()
-    .AddCache();
-
-var activityRepository = new ActivityRepository(eventStore);
-var streakCalculator = new StreakCalculator(eventStore);
+var deps = new Dependencies();
+var activityRepository = deps.ActivityRepository;
+var streakCalculator = deps.StreakCalculator;
 
 Console.ForegroundColor = ConsoleColor.White;
 while (true)
