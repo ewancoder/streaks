@@ -4,24 +4,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Streaks
+namespace Streaks;
+
+internal sealed class Dependencies
 {
-    internal sealed class Dependencies
+    private readonly IEventStore _eventStore;
+    private readonly IActivityRepository _activityRepository;
+    private readonly IStreakCalculator _streakCalculator;
+
+    public Dependencies()
     {
-        private readonly IEventStore _eventStore;
-        private readonly IActivityRepository _activityRepository;
-        private readonly IStreakCalculator _streakCalculator;
+        _eventStore = new EventStore()
+            .AddCache();
 
-        public Dependencies()
-        {
-            _eventStore = new EventStore()
-                .AddCache();
-
-            _activityRepository = new ActivityRepository(_eventStore);
-            _streakCalculator = new StreakCalculator(_eventStore);
-        }
-
-        public IActivityRepository ActivityRepository => _activityRepository;
-        public IStreakCalculator StreakCalculator => _streakCalculator;
+        _activityRepository = new ActivityRepository(_eventStore);
+        _streakCalculator = new StreakCalculator(_eventStore);
     }
+
+    public IActivityRepository ActivityRepository => _activityRepository;
+    public IStreakCalculator StreakCalculator => _streakCalculator;
 }

@@ -1,6 +1,5 @@
 ﻿using Streaks;
 using System.Text;
-using System.Text.Json;
 
 var deps = new Dependencies();
 var activityRepository = deps.ActivityRepository;
