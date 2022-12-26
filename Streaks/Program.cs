@@ -4,6 +4,7 @@ using System.Text;
 var deps = new Dependencies();
 var activityRepository = deps.ActivityRepository;
 var streakCalculator = deps.StreakCalculator;
+var tablePrinter = deps.TablePrinter;
 
 Console.ForegroundColor = ConsoleColor.White;
 while (true)
@@ -17,56 +18,61 @@ while (true)
     Console.WriteLine("== Activities ==");
     Console.WriteLine();
 
-    Console.WriteLine($"{"Activity",-20}\t{"Desired",-8}\t{"Active",-6}\t{"Period",-6}\t{"Description"}");
+    var activityTable = new Table(5);
+    activityTable.AddHeader("Activity", "Desired", "Active", "Period", "Description");
 
     var activities = await activityRepository.FindAllAsync(cts.Token);
     foreach (var activity in activities.OrderBy(x => x.ActivityId))
     {
-        Console.WriteLine($"{activity.ActivityId,-20}\t{activity.DesiredAmount,-8}\t{activity.Active,-6}\t{activity.Period,-6}\t{activity.Description}");
+        activityTable.AddRow(
+            activity.ActivityId,
+            activity.DesiredAmount,
+            activity.Active,
+            activity.Period,
+            activity.Description);
     }
+
+    tablePrinter.Print(activityTable, new TablePrinterOptions());
 
     Console.WriteLine();
     Console.WriteLine($"TODAY {DateTimeOffset.Now}");
     Console.WriteLine();
 
     Console.WriteLine("===== STREAKS =====");
-    Console.WriteLine();
 
-    Console.WriteLine($"{"Activity",-20}{"Need to do",-15}{"In time",-50}{"Next cycle starts at"}");
-    Console.WriteLine();
-    var alternativeColor = ConsoleColor.DarkGray;
-    var color = alternativeColor;
+    var streakTable = new Table(5);
+    streakTable.AddHeader("Activity", "Need to do", "In time", "Next cycle starts at", "Description");
 
     foreach (var activity in activities.Where(x => !streaks.Any(s => s.ActivityId == x.ActivityId)).OrderBy(x => x.ActivityId))
     {
-        color = color == alternativeColor ? ConsoleColor.Black : alternativeColor;
-        Console.BackgroundColor = color;
-
-        Console.WriteLine($"{activity.ActivityId,-20}{activity.Description}");
+        streakTable.AddRow(activity.ActivityId, string.Empty, string.Empty, string.Empty, activity.Description);
     }
 
-    Console.WriteLine();
+    streakTable.AddEmptyRow();
 
     foreach (var streak in streaks.Where(x => !x.DoneThisStreak).OrderBy(x => x.AbsoluteDeadLine))
     {
-        color = color == alternativeColor ? ConsoleColor.Black : alternativeColor;
-        Console.BackgroundColor = color;
-
-        Console.WriteLine($"{streak.ActivityId,-20}{(streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo),-15}{GetHumanTime(streak.AbsoluteDeadLine-DateTime.Now),-50}{(streak.DoneThisStreak ? streak.NextCycleStartsAt : "")}");
+        streakTable.AddRow(
+            streak.ActivityId,
+            streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo,
+            GetHumanTime(streak.AbsoluteDeadLine - DateTime.Now),
+            streak.DoneThisStreak ? streak.NextCycleStartsAt : "",
+            string.Empty);
     }
 
-    Console.WriteLine();
+    streakTable.AddEmptyRow();
 
     foreach (var streak in streaks.Where(x => x.DoneThisStreak).OrderBy(x => x.AbsoluteDeadLine))
     {
-        color = color == alternativeColor ? ConsoleColor.Black : alternativeColor;
-        Console.BackgroundColor = color;
-
-        Console.WriteLine($"{streak.ActivityId,-20}{(streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo),-15}{GetHumanTime(streak.AbsoluteDeadLine-DateTime.Now),-50}{(streak.DoneThisStreak ? streak.NextCycleStartsAt : "")}");
+        streakTable.AddRow(
+            streak.ActivityId,
+            streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo,
+            GetHumanTime(streak.AbsoluteDeadLine - DateTime.Now),
+            streak.DoneThisStreak ? streak.NextCycleStartsAt : "",
+            string.Empty);
     }
 
-    Console.BackgroundColor = ConsoleColor.Black;
-    Console.WriteLine();
+    tablePrinter.Print(streakTable, new TablePrinterOptions());
 
     string GetHumanTime(TimeSpan timespan)
     {

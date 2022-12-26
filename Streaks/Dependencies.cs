@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Streaks;
+﻿namespace Streaks;
 
 internal sealed class Dependencies
 {
     private readonly IEventStore _eventStore;
     private readonly IActivityRepository _activityRepository;
     private readonly IStreakCalculator _streakCalculator;
+    private readonly IOutput _output;
+    private readonly ITablePrinter _tablePrinter;
 
     public Dependencies()
     {
@@ -19,8 +15,11 @@ internal sealed class Dependencies
 
         _activityRepository = new ActivityRepository(_eventStore);
         _streakCalculator = new StreakCalculator(_eventStore);
+        _output = new ConsoleOutput();
+        _tablePrinter = new TablePrinter(_output);
     }
 
     public IActivityRepository ActivityRepository => _activityRepository;
     public IStreakCalculator StreakCalculator => _streakCalculator;
+    public ITablePrinter TablePrinter => _tablePrinter;
 }
