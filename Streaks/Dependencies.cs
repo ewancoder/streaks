@@ -13,8 +13,10 @@ internal sealed class Dependencies
         _eventStore = new EventStore()
             .AddCache();
 
+        var streakCalculator = new StreakCalculator();
+
         _activityRepository = new ActivityRepository(_eventStore);
-        _streakAggregator = new StreakAggregator(_eventStore);
+        _streakAggregator = new StreakAggregator(_eventStore, streakCalculator);
         _output = new ConsoleOutput();
         _tablePrinter = new TablePrinter(_output);
     }

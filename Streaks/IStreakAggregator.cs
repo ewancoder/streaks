@@ -1,110 +1,87 @@
 ﻿namespace Streaks;
 
-internal interface IStreakAggregator
+internal interface IStreakCalculator
 {
-    ValueTask<IEnumerable<StreakInfo>> CalculateCurrentStreaksAsync(CancellationToken cancellationToken);
+    StreakInfo CalculateStreakInfo(IEnumerable<ActivityEvent> activityEvents);
 }
 
-internal sealed record StreakInfo(
-    string ActivityId,
-    int NeedToDo,
-    bool DoneThisStreak,
-    DateOnly StartedLatestStreakOn,
-    DateOnly ShouldFinishActivityTill,
-    DateTime AbsoluteDeadLine,
-    DateTime NextCycleStartsAt,
-    int AmountLeftToDo,
-    int LastDoneDaysAgo);
-
-internal sealed record StreakDay(
-    DateOnly Day,
-    int Amount);
-
-internal sealed class StreakAggregator : IStreakAggregator
+internal sealed class StreakCalculator : IStreakCalculator
 {
     private readonly int startOfDay = 3; // 3 hours in the morning, by GMT timezone (6 hours in the morning GMT+3).
-    private readonly IEventStore _eventStore;
 
-    public StreakAggregator(IEventStore eventStore)
+    public StreakInfo? CalculateStreakInfo(IEnumerable<ActivityEvent> activityEvents)
     {
-        _eventStore = eventStore;
-    }
+        if (activityEvents.GroupBy(x => x.ActivityId).Count() > 1)
+            throw new ArgumentException("Cannot calculate streak from different activities.", nameof(activityEvents));
 
-    public async ValueTask<IEnumerable<StreakInfo>> CalculateCurrentStreaksAsync(CancellationToken cancellationToken)
-    {
-        var events = await _eventStore.GetAllEventsAsync(cancellationToken);
+        var activityId = activityEvents.First().ActivityId;
+        var started = false;
+        var desiredAmount = 0;
+        var cycleLength = 0;
+        var lastActivity = DateTimeOffset.MinValue;
+        var description = string.Empty;
 
-        var streaks = new List<StreakInfo>();
-        foreach (var activityEvents in events.GroupBy(x => x.ActivityId))
+        var dayAndAmount = new Dictionary<DateOnly, int>();
+
+        DateOnly GetDay(ActivityEvent @event)
         {
-            var started = false;
-            var desiredAmount = 0;
-            var cycleLength = 0;
-            var lastActivity = DateTimeOffset.MinValue;
-            var description = string.Empty;
-
-            var dayAndAmount = new Dictionary<DateOnly, int>();
-
-            DateOnly GetDay(ActivityEvent @event)
-            {
-                return DateOnly.FromDateTime(@event.HappenedAt.UtcDateTime.AddHours(-startOfDay).Date);
-            }
-
-            void AddToDay(DateOnly day, int amount)
-            {
-                if (dayAndAmount.ContainsKey(day))
-                    dayAndAmount[day] += amount;
-                else
-                    dayAndAmount[day] = amount;
-            }
-
-            void AddEventToDay(ActivityEvent @event, int amount)
-            {
-                var day = GetDay(@event);
-
-                AddToDay(day, amount);
-            }
-
-            foreach (var @event in activityEvents.OrderBy(x => x.HappenedAt))
-            {
-                if (@event.ActivityId == "freeze-all" || @event.ActivityId == "unfreeze-all")
-                    continue; // Not implemented for now.
-
-                if (@event.Type == ActivityEventType.Started)
-                {
-                    started = true;
-                    desiredAmount = @event.ActivityStartedDesiredAmount;
-                    cycleLength = @event.PeriodDays;
-                    description = @event.Description;
-                    continue;
-                }
-
-                if (@event.Type == ActivityEventType.Stopped)
-                {
-                    started = false;
-                    continue;
-                }
-
-                if (!started)
-                    continue;
-
-                lastActivity = @event.HappenedAt;
-                AddEventToDay(@event, @event.Amount);
-            }
-
-            var streakDays = new List<StreakDay>();
-            foreach (var day in dayAndAmount.Keys.OrderBy(x => x))
-            {
-                streakDays.Add(new StreakDay(day, dayAndAmount[day]));
-            }
-
-            var streakInfo = CalculateStreakInfo(activityEvents.Key, cycleLength, desiredAmount, streakDays, lastActivity);
-
-            if (streakInfo != null)
-                streaks.Add(streakInfo);
+            return DateOnly.FromDateTime(@event.HappenedAt.UtcDateTime.AddHours(-startOfDay).Date);
         }
 
-        return streaks;
+        void AddToDay(DateOnly day, int amount)
+        {
+            if (dayAndAmount.ContainsKey(day))
+                dayAndAmount[day] += amount;
+            else
+                dayAndAmount[day] = amount;
+        }
+
+        void AddEventToDay(ActivityEvent @event, int amount)
+        {
+            var day = GetDay(@event);
+
+            AddToDay(day, amount);
+        }
+
+        foreach (var @event in activityEvents.OrderBy(x => x.HappenedAt))
+        {
+            if (@event.ActivityId == "freeze-all" || @event.ActivityId == "unfreeze-all")
+                continue; // Not implemented for now.
+
+            if (@event.Type == ActivityEventType.Started)
+            {
+                started = true;
+                desiredAmount = @event.ActivityStartedDesiredAmount;
+                cycleLength = @event.PeriodDays;
+                description = @event.Description;
+                continue;
+            }
+
+            if (@event.Type == ActivityEventType.Stopped)
+            {
+                started = false;
+                continue;
+            }
+
+            if (!started)
+                continue;
+
+            lastActivity = @event.HappenedAt;
+            AddEventToDay(@event, @event.Amount);
+        }
+
+        var streakDays = new List<StreakDay>();
+        foreach (var day in dayAndAmount.Keys.OrderBy(x => x))
+        {
+            streakDays.Add(new StreakDay(day, dayAndAmount[day]));
+        }
+
+        var streakInfo = CalculateStreakInfo(activityId, cycleLength, desiredAmount, streakDays, lastActivity);
+
+        if (streakInfo != null) // TODO: Figure out why it can be null.
+            return streakInfo;
+
+        return null;
     }
 
     private StreakInfo? CalculateStreakInfo(string activity, int cycleLength, int desiredAmount, IEnumerable<StreakDay> days, DateTimeOffset lastActivity)
@@ -186,5 +163,55 @@ internal sealed class StreakAggregator : IStreakAggregator
             nextCycleStartsAtDateTime,
             desiredAmount - amount < 0 ? 0 : desiredAmount - amount,
             (DateTimeOffset.Now - lastActivity).Days);
+    }
+
+}
+
+internal interface IStreakAggregator
+{
+    ValueTask<IEnumerable<StreakInfo>> CalculateCurrentStreaksAsync(CancellationToken cancellationToken);
+}
+
+internal sealed record StreakInfo(
+    string ActivityId,
+    int NeedToDo,
+    bool DoneThisStreak,
+    DateOnly StartedLatestStreakOn,
+    DateOnly ShouldFinishActivityTill,
+    DateTime AbsoluteDeadLine,
+    DateTime NextCycleStartsAt,
+    int AmountLeftToDo,
+    int LastDoneDaysAgo);
+
+internal sealed record StreakDay(
+    DateOnly Day,
+    int Amount);
+
+internal sealed class StreakAggregator : IStreakAggregator
+{
+    private readonly IEventStore _eventStore;
+    private readonly IStreakCalculator _streakCalculator;
+
+    public StreakAggregator(
+        IEventStore eventStore,
+        IStreakCalculator streakCalculator)
+    {
+        _eventStore = eventStore;
+        _streakCalculator = streakCalculator;
+    }
+
+    public async ValueTask<IEnumerable<StreakInfo>> CalculateCurrentStreaksAsync(CancellationToken cancellationToken)
+    {
+        var events = await _eventStore.GetAllEventsAsync(cancellationToken);
+
+        var streaks = new List<StreakInfo>();
+        foreach (var activityEvents in events.GroupBy(x => x.ActivityId))
+        {
+            var streakInfo = _streakCalculator.CalculateStreakInfo(activityEvents);
+            if (streakInfo != null)
+                streaks.Add(streakInfo);
+        }
+
+        return streaks;
     }
 }
