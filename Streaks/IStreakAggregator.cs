@@ -1,6 +1,6 @@
 ﻿namespace Streaks;
 
-internal interface IStreakCalculator
+internal interface IStreakAggregator
 {
     ValueTask<IEnumerable<StreakInfo>> CalculateCurrentStreaksAsync(CancellationToken cancellationToken);
 }
@@ -20,12 +20,12 @@ internal sealed record StreakDay(
     DateOnly Day,
     int Amount);
 
-internal sealed class StreakCalculator : IStreakCalculator
+internal sealed class StreakAggregator : IStreakAggregator
 {
     private readonly int startOfDay = 3; // 3 hours in the morning, by GMT timezone (6 hours in the morning GMT+3).
     private readonly IEventStore _eventStore;
 
-    public StreakCalculator(IEventStore eventStore)
+    public StreakAggregator(IEventStore eventStore)
     {
         _eventStore = eventStore;
     }

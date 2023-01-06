@@ -3,7 +3,7 @@ using System.Text;
 
 var deps = new Dependencies();
 var activityRepository = deps.ActivityRepository;
-var streakCalculator = deps.StreakCalculator;
+var streakAggregator = deps.StreakAggregator;
 var tablePrinter = deps.TablePrinter;
 
 Console.ForegroundColor = ConsoleColor.White;
@@ -11,7 +11,7 @@ while (true)
 {
     var cts = new CancellationTokenSource();
 
-    var streaks = await streakCalculator.CalculateCurrentStreaksAsync(cts.Token);
+    var streaks = await streakAggregator.CalculateCurrentStreaksAsync(cts.Token);
 
     Console.Clear();
     Console.BackgroundColor = ConsoleColor.Black;

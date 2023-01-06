@@ -4,7 +4,7 @@ internal sealed class Dependencies
 {
     private readonly IEventStore _eventStore;
     private readonly IActivityRepository _activityRepository;
-    private readonly IStreakCalculator _streakCalculator;
+    private readonly IStreakAggregator _streakAggregator;
     private readonly IOutput _output;
     private readonly ITablePrinter _tablePrinter;
 
@@ -14,12 +14,12 @@ internal sealed class Dependencies
             .AddCache();
 
         _activityRepository = new ActivityRepository(_eventStore);
-        _streakCalculator = new StreakCalculator(_eventStore);
+        _streakAggregator = new StreakAggregator(_eventStore);
         _output = new ConsoleOutput();
         _tablePrinter = new TablePrinter(_output);
     }
 
     public IActivityRepository ActivityRepository => _activityRepository;
-    public IStreakCalculator StreakCalculator => _streakCalculator;
+    public IStreakAggregator StreakAggregator => _streakAggregator;
     public ITablePrinter TablePrinter => _tablePrinter;
 }
