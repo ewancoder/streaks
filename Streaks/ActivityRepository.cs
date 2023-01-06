@@ -61,7 +61,7 @@ internal sealed class ActivityRepository : IActivityRepository
         return _store.AddEventAsync(new ActivityEvent(
             activity.ActivityId,
             ActivityEventType.Started,
-            DateTimeOffset.MinValue,
+            DateTimeOffset.Now,
             activity.DesiredAmount,
             activity.Description,
             0,

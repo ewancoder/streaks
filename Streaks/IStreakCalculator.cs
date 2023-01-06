@@ -13,7 +13,8 @@ internal sealed record StreakInfo(
     DateOnly ShouldFinishActivityTill,
     DateTime AbsoluteDeadLine,
     DateTime NextCycleStartsAt,
-    int AmountLeftToDo);
+    int AmountLeftToDo,
+    int LastDoneDaysAgo);
 
 internal sealed record StreakDay(
     DateOnly Day,
@@ -66,6 +67,9 @@ internal sealed class StreakCalculator : IStreakCalculator
 
             foreach (var @event in activityEvents.OrderBy(x => x.HappenedAt))
             {
+                if (@event.ActivityId == "freeze-all" || @event.ActivityId == "unfreeze-all")
+                    continue; // Not implemented for now.
+
                 if (@event.Type == ActivityEventType.Started)
                 {
                     started = true;
@@ -94,7 +98,7 @@ internal sealed class StreakCalculator : IStreakCalculator
                 streakDays.Add(new StreakDay(day, dayAndAmount[day]));
             }
 
-            var streakInfo = CalculateStreakInfo(activityEvents.Key, cycleLength, desiredAmount, streakDays);
+            var streakInfo = CalculateStreakInfo(activityEvents.Key, cycleLength, desiredAmount, streakDays, lastActivity);
 
             if (streakInfo != null)
                 streaks.Add(streakInfo);
@@ -103,7 +107,7 @@ internal sealed class StreakCalculator : IStreakCalculator
         return streaks;
     }
 
-    private StreakInfo? CalculateStreakInfo(string activity, int cycleLength, int desiredAmount, IEnumerable<StreakDay> days)
+    private StreakInfo? CalculateStreakInfo(string activity, int cycleLength, int desiredAmount, IEnumerable<StreakDay> days, DateTimeOffset lastActivity)
     {
         if (!days.Any())
             return null;
@@ -180,6 +184,7 @@ internal sealed class StreakCalculator : IStreakCalculator
             DateOnly.FromDayNumber(startedOnDay.DayNumber + cycleLength - 1),
             deadline.ToLocalTime(),
             nextCycleStartsAtDateTime,
-            desiredAmount - amount < 0 ? 0 : desiredAmount - amount);
+            desiredAmount - amount < 0 ? 0 : desiredAmount - amount,
+            (DateTimeOffset.Now - lastActivity).Days);
     }
 }

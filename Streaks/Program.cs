@@ -40,12 +40,12 @@ while (true)
 
     Console.WriteLine("===== STREAKS =====");
 
-    var streakTable = new Table(5);
-    streakTable.AddHeader("Activity", "Need to do", "In time", "Next cycle starts at", "Description");
+    var streakTable = new Table(6);
+    streakTable.AddHeader("Activity", "Need to do", "In time", "Next cycle starts at", "Description", "Last done DAYS ago");
 
     foreach (var activity in activities.Where(x => !streaks.Any(s => s.ActivityId == x.ActivityId)).OrderBy(x => x.ActivityId))
     {
-        streakTable.AddRow(activity.ActivityId, string.Empty, string.Empty, string.Empty, activity.Description);
+        streakTable.AddRow(activity.ActivityId, string.Empty, string.Empty, string.Empty, activity.Description, string.Empty);
     }
 
     streakTable.AddEmptyRow();
@@ -57,7 +57,8 @@ while (true)
             streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo,
             GetHumanTime(streak.AbsoluteDeadLine - DateTime.Now),
             streak.DoneThisStreak ? streak.NextCycleStartsAt : "",
-            string.Empty);
+            string.Empty,
+            streak.LastDoneDaysAgo);
     }
 
     streakTable.AddEmptyRow();
@@ -69,7 +70,8 @@ while (true)
             streak.DoneThisStreak ? streak.NeedToDo + " (done)" : streak.NeedToDo,
             GetHumanTime(streak.AbsoluteDeadLine - DateTime.Now),
             streak.DoneThisStreak ? streak.NextCycleStartsAt : "",
-            string.Empty);
+            string.Empty,
+            streak.LastDoneDaysAgo);
     }
 
     tablePrinter.Print(streakTable, new TablePrinterOptions());
