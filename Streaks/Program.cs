@@ -14,6 +14,7 @@ while (true)
     var cts = new CancellationTokenSource();
 
     var streaks = await streakAggregator.CalculateCurrentStreaksAsync(cts.Token);
+    var streaksNg = await streakAggregator.CalculateCurrentStreaksNgAsync(cts.Token);
 
     Console.Clear();
     Console.BackgroundColor = ConsoleColor.Black;
@@ -77,6 +78,27 @@ while (true)
     }
 
     tablePrinter.Print(streakTable, new TablePrinterOptions());
+
+    var ngStreakTable = new Table(6);
+    ngStreakTable.AddHeader("Activity ID", "Successful streak", "Need to do in this cycle", "This cycle deadline (days)", "Next cycle deadline (days)", "Need to do in time");
+    foreach (var streak in streaksNg
+        .Where(x => !x.CurrentCycleIsDone)
+        .Where(x => !x.ActivityId.ToLowerInvariant().Contains("freeze"))
+        .OrderBy(x => x.CurrentCycleDeadLineInDays)
+        .ThenByDescending(x => x.NeedToDoInCurrentCycle))
+    {
+        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles, streak.NeedToDoInCurrentCycle, streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+    }
+    ngStreakTable.AddEmptyRow();
+    foreach (var streak in streaksNg
+        .Where(x => x.CurrentCycleIsDone)
+        .Where(x => !x.ActivityId.ToLowerInvariant().Contains("freeze"))
+        .OrderBy(x => x.CurrentCycleDeadLineInDays)
+        .ThenByDescending(x => x.NeedToDoInCurrentCycle))
+    {
+        ngStreakTable.AddRow($"(done) {streak.ActivityId}", streak.SuccessfulCycles, streak.NeedToDoInCurrentCycle, streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+    }
+    tablePrinter.Print(ngStreakTable, new TablePrinterOptions());
 
     string GetHumanTime(TimeSpan timespan)
     {

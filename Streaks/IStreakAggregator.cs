@@ -1,164 +1,63 @@
-﻿using System.Security.Cryptography;
-
-namespace Streaks;
+﻿namespace Streaks;
 
 internal interface IStreakCalculatorNg
 {
-    StreakInfoNg Calculate(IEnumerable<ActivityEvent> activityEvents);
+    StreakInfoNg Calculate(
+        string activityId,
+        IEnumerable<CycleNg> cycles,
+        int currentDayNumber);
 }
 
 internal sealed class StreakCalculatorNg : IStreakCalculatorNg
 {
-    public StreakInfoNg Calculate(IEnumerable<ActivityEvent> activityEvents)
+    public StreakInfoNg Calculate(
+        string activityId,
+        IEnumerable<CycleNg> cycles,
+        int currentDayNumber)
     {
-        var activityId = activityEvents.GroupBy(x => x.ActivityId).Single().Key;
-
-        var startedAt = DateTimeOffset.MinValue;
-        var desiredAmount = 0;
-        var cycleLengthDays = 0;
-
-        var cycles = new List<CycleNg>();
-        var startOfCycle = DateOnly.MinValue;
-        var accumulatedAmount = 0;
-        var lastCycleBroken = false;
-
-        var needToDoInCurrentCycle = 0;
-
-        foreach (var @event in activityEvents.OrderBy(x => x.HappenedAt))
+        var lastStreakCycles = new List<CycleNg>();
+        foreach (var cycle in cycles)
         {
-            if (@event.Type == ActivityEventType.Started)
-            {
-                startedAt = @event.HappenedAt;
-                desiredAmount = @event.ActivityStartedDesiredAmount;
-                cycleLengthDays = @event.PeriodDays;
-            }
+            if (cycle.CycleOrder == 1)
+                lastStreakCycles = new List<CycleNg>();
 
-            if (@event.Type == ActivityEventType.Performed)
-            {
-                if (startedAt == DateTimeOffset.MinValue)
-                    continue; // Activity hasn't started yet.
-
-                if (startOfCycle == DateOnly.MinValue)
-                {
-                    // First date of the cycle.
-                    startOfCycle = GetDay(@event.HappenedAt);
-
-                    accumulatedAmount = @event.Amount;
-                    needToDoInCurrentCycle = desiredAmount - @event.Amount;
-
-                    if (@event.Amount >= desiredAmount)
-                    {
-                        var cycle = new CycleNg(startOfCycle.DayNumber, cycleLengthDays, 3, 3, 3);
-                        cycles.Add(cycle);
-                        startOfCycle = DateOnly.FromDayNumber(cycle.NextCycleFirstDayNumber);
-                        accumulatedAmount = 0;
-                        lastCycleBroken = false;
-                        needToDoInCurrentCycle = 0;
-                        continue;
-                        // Cycle was finished with the first record.
-                    }
-
-                    continue;
-                }
-
-                if (cycles.Any() && cycles.Last().NextCycleFirstDayNumber > GetDay(@event.HappenedAt).DayNumber)
-                {
-                    // Event happened within already finished cycle, no need to consider it.
-                    continue;
-                }
-
-                // New cycle is started by this event.
-                if (cycles.Any() && GetDay(DateTimeOffset.Now).DayNumber >= cycles.Last().NextCycleFirstDayNumber)
-                {
-                    // Cycle is broken.
-                    startOfCycle = GetDay(DateTimeOffset.Now);
-                    accumulatedAmount = @event.Amount;
-                    lastCycleBroken = true;
-                    needToDoInCurrentCycle = desiredAmount - @event.Amount;
-
-                    // Copied from above.
-                    if (@event.Amount >= desiredAmount)
-                    {
-                        var cycle = new CycleNg(startOfCycle.DayNumber, cycleLengthDays, 3, 3, 3    );
-                        cycles.Add(cycle);
-                        startOfCycle = DateOnly.FromDayNumber(cycle.NextCycleFirstDayNumber);
-                        accumulatedAmount = 0;
-                        lastCycleBroken = false;
-                        needToDoInCurrentCycle = 0;
-                        continue;
-                        // Cycle was finished with the first record.
-                    }
-
-                    continue;
-                }
-
-                accumulatedAmount += @event.Amount;
-                needToDoInCurrentCycle -= @event.Amount;
-                if (accumulatedAmount >= desiredAmount)
-                {
-                    var cycle = new CycleNg(startOfCycle.DayNumber, cycleLengthDays, 3,3,3);
-                    cycles.Add(cycle);
-                    startOfCycle = DateOnly.FromDayNumber(cycle.NextCycleFirstDayNumber);
-                    accumulatedAmount = 0;
-                    lastCycleBroken = false;
-                    needToDoInCurrentCycle = 0;
-                    continue;
-                    // Cycle was finished by this event.
-                }
-            }
+            lastStreakCycles.Add(cycle);
         }
 
-        DateOnly GetDay(DateTimeOffset timespan)
-        {
-            return DateOnly.FromDateTime(timespan.UtcDateTime.AddHours(-3).Date);
-        }
-
-        int CalculateSuccessfulCyclesSinceDays()
-        {
-            var firstDayNumber = 0;
-            var nextCycleFirstDayNumber = 0;
-            foreach (var cycle in cycles)
-            {
-                if (firstDayNumber == 0)
-                {
-                    firstDayNumber = cycle.FromDayNumber;
-                    nextCycleFirstDayNumber = cycle.NextCycleFirstDayNumber;
-                    continue;
-                }
-
-                if (cycle.FromDayNumber == nextCycleFirstDayNumber)
-                {
-                    nextCycleFirstDayNumber = cycle.NextCycleFirstDayNumber;
-                    continue;
-                }
-
-                // Broken cycle.
-                firstDayNumber = cycle.FromDayNumber;
-                nextCycleFirstDayNumber = cycle.NextCycleFirstDayNumber;
-            }
-
-            return 3;
-        }
-
-        var successfulCyclesSinceDays = CalculateSuccessfulCyclesSinceDays();
-
-        // TODO: Account for breaking cycle when no actions were performed for long time.
+        var lastCycle = lastStreakCycles.Last();
 
         var streakInfo = new StreakInfoNg(
-            successfulCyclesSinceDays,
-            needToDoInCurrentCycle, 0, 0);
+            activityId,
+            lastCycle.CycleOrder,
+            lastCycle.NeedToDo,
+            lastCycle.NextCycleFirstDayNumber - currentDayNumber,
+            lastCycle.NextCycleFirstDayNumber + lastCycle.CycleLength - currentDayNumber);
 
-        throw new NotImplementedException();
+        return streakInfo;
     }
 }
 
 internal record StreakInfoNg(
-    int SuccessfulCyclesSinceDays,
+    string ActivityId,
+    int SuccessfulCycles,
     int NeedToDoInCurrentCycle,
     int CurrentCycleDeadLineInDays,
     int NextCycleDeadLineInDays)
 {
     public bool CurrentCycleIsDone => NeedToDoInCurrentCycle == 0;
+    public string NeedToDoInTime
+    {
+        get
+        {
+            var nowDayNumber = DateOnly.FromDateTime(DateTimeOffset.Now.UtcDateTime.AddHours(-3)).DayNumber;
+            var deadlineDayNumber = nowDayNumber + CurrentCycleDeadLineInDays;
+            var deadlineExactTime = DateOnly.FromDayNumber(deadlineDayNumber).ToDateTime(new TimeOnly(3, 0), DateTimeKind.Utc);
+
+            var span = deadlineExactTime - DateTimeOffset.UtcNow;
+
+            return $"{span.Days} days, {span.Hours} hours";
+        }
+    }
 }
 
 internal record CycleNg(
@@ -169,6 +68,8 @@ internal record CycleNg(
     int AccumulatedAmount)
 {
     public int NextCycleFirstDayNumber => FromDayNumber + CycleLength;
+    public int NeedToDo => DesiredAmount - AccumulatedAmount > 0
+        ? DesiredAmount - AccumulatedAmount : 0;
 }
 
 internal interface IStreakCalculator
@@ -433,6 +334,7 @@ internal sealed class StreakCalculator : IStreakCalculator
 internal interface IStreakAggregator
 {
     ValueTask<IEnumerable<StreakInfo>> CalculateCurrentStreaksAsync(CancellationToken cancellationToken);
+    ValueTask<IEnumerable<StreakInfoNg>> CalculateCurrentStreaksNgAsync(CancellationToken cancellationToken);
 }
 
 internal sealed record StreakInfo(
@@ -454,13 +356,19 @@ internal sealed class StreakAggregator : IStreakAggregator
 {
     private readonly IEventStore _eventStore;
     private readonly IStreakCalculator _streakCalculator;
+    private readonly IStreakCalculatorNg _streakCalculatorNg;
+    private readonly ICycleCalculator _cycleCalculator;
 
     public StreakAggregator(
         IEventStore eventStore,
-        IStreakCalculator streakCalculator)
+        IStreakCalculator streakCalculator,
+        IStreakCalculatorNg streakCalculatorNg,
+        ICycleCalculator cycleCalculator)
     {
         _eventStore = eventStore;
         _streakCalculator = streakCalculator;
+        _streakCalculatorNg = streakCalculatorNg;
+        _cycleCalculator = cycleCalculator;
     }
 
     public async ValueTask<IEnumerable<StreakInfo>> CalculateCurrentStreaksAsync(CancellationToken cancellationToken)
@@ -471,6 +379,24 @@ internal sealed class StreakAggregator : IStreakAggregator
         foreach (var activityEvents in events.GroupBy(x => x.ActivityId))
         {
             var streakInfo = _streakCalculator.CalculateStreakInfo(activityEvents);
+            if (streakInfo != null)
+                streaks.Add(streakInfo);
+        }
+
+        return streaks;
+    }
+
+    public async ValueTask<IEnumerable<StreakInfoNg>> CalculateCurrentStreaksNgAsync(CancellationToken cancellationToken)
+    {
+        var events = await _eventStore.GetAllEventsAsync(cancellationToken);
+
+        var streaks = new List<StreakInfoNg>();
+        foreach (var activityEvents in events.GroupBy(x => x.ActivityId))
+        {
+            var activityId = activityEvents.Key;
+            var currentDayNumber = DateOnly.FromDateTime(DateTimeOffset.Now.UtcDateTime.AddHours(-3)).DayNumber;
+            var cycles = _cycleCalculator.CalculateCycles(activityEvents, currentDayNumber);
+            var streakInfo = _streakCalculatorNg.Calculate(activityId, cycles, currentDayNumber);
             if (streakInfo != null)
                 streaks.Add(streakInfo);
         }

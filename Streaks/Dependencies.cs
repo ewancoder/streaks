@@ -14,9 +14,11 @@ internal sealed class Dependencies
             .AddCache();
 
         var streakCalculator = new StreakCalculator();
+        var streakCalculatorNg = new StreakCalculatorNg();
+        var cycleCalculator = new CycleCalculator();
 
         _activityRepository = new ActivityRepository(_eventStore);
-        _streakAggregator = new StreakAggregator(_eventStore, streakCalculator);
+        _streakAggregator = new StreakAggregator(_eventStore, streakCalculator, streakCalculatorNg, cycleCalculator);
         _output = new ConsoleOutput();
         _tablePrinter = new TablePrinter(_output);
     }
