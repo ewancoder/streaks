@@ -87,7 +87,7 @@ while (true)
         .OrderBy(x => x.CurrentCycleDeadLineInDays)
         .ThenByDescending(x => x.NeedToDoInCurrentCycle))
     {
-        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles, streak.NeedToDoInCurrentCycle, streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
     }
     ngStreakTable.AddEmptyRow();
     foreach (var streak in streaksNg
@@ -96,7 +96,7 @@ while (true)
         .OrderBy(x => x.CurrentCycleDeadLineInDays)
         .ThenByDescending(x => x.NeedToDoInCurrentCycle))
     {
-        ngStreakTable.AddRow($"(done) {streak.ActivityId}", streak.SuccessfulCycles, streak.NeedToDoInCurrentCycle, streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+        ngStreakTable.AddRow($"(done) {streak.ActivityId}", streak.SuccessfulCycles, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
     }
     tablePrinter.Print(ngStreakTable, new TablePrinterOptions());
 
