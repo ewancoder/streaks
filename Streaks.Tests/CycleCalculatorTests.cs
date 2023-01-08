@@ -16,7 +16,7 @@ namespace Streaks.Tests
         internal void ShouldCalculate(
             int currentDayNumber,
             IEnumerable<ActivityEvent> activityEvents,
-            IEnumerable<CycleNg> cycles)
+            IEnumerable<Cycle> cycles)
         {
             var result = _sut.CalculateCycles(activityEvents, currentDayNumber)
                 .ToList();
@@ -183,7 +183,7 @@ namespace Streaks.Tests
     {
         private readonly int _cycleLength;
         private readonly int _desiredAmount;
-        private readonly List<CycleNg> _cycles = new List<CycleNg>();
+        private readonly List<Cycle> _cycles = new List<Cycle>();
         private int _order = 1;
 
         public CycleBuilder(int cycleLength, int desiredAmount)
@@ -195,7 +195,7 @@ namespace Streaks.Tests
         public CycleBuilder StartStreak(int fromDayNumber, int accumulatedAmount)
         {
             _order = 1;
-            _cycles.Add(new CycleNg(fromDayNumber, _cycleLength, _order, _desiredAmount, accumulatedAmount));
+            _cycles.Add(new Cycle(fromDayNumber, _cycleLength, _order, _desiredAmount, accumulatedAmount));
 
             return this;
         }
@@ -203,11 +203,11 @@ namespace Streaks.Tests
         public CycleBuilder AddCycle(int accumulatedAmount)
         {
             _order++;
-            _cycles.Add(new CycleNg(_cycles.Last().NextCycleFirstDayNumber, _cycleLength, _order, _desiredAmount, accumulatedAmount));
+            _cycles.Add(new Cycle(_cycles.Last().NextCycleFirstDayNumber, _cycleLength, _order, _desiredAmount, accumulatedAmount));
 
             return this;
         }
 
-        public IEnumerable<CycleNg> Build() => _cycles;
+        public IEnumerable<Cycle> Build() => _cycles;
     }
 }
