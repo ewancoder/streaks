@@ -1,5 +1,7 @@
 ﻿using Streaks;
+using System.Runtime.CompilerServices;
 using System.Text;
+[assembly:InternalsVisibleTo("Streaks.Tests")]
 
 var deps = new Dependencies();
 var activityRepository = deps.ActivityRepository;
