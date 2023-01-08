@@ -133,7 +133,7 @@ internal sealed class CycleCalculator : ICycleCalculator
                 accumulatedAmount = @event.Amount;
 
                 if (cycle.DesiredAmount > cycle.AccumulatedAmount
-                    || currentEventDayNumber - startOfCycle > cycleLengthDays)
+                    || currentEventDayNumber - startOfCycle >= cycleLengthDays)
                 {
                     // Streak was broken.
                     startOfCycle = currentEventDayNumber;
