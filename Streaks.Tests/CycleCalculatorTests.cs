@@ -161,6 +161,21 @@ namespace Streaks.Tests
                     .AddCycle(0)
                     .Build()
             };
+
+            yield return new object[]
+            {
+                // Abyss, 8 runs per 7 days.
+                28,
+                new ActivityEventBuilder()
+                    .StartActivity(1, 0, 8, 7)
+                    .Perform(2, 10, 5)
+                    .Perform(3, 5, 3)
+                    .Build(),
+                new CycleBuilder(7, 8)
+                    .StartStreak(2, 8)
+                    .StartStreak(28, 0)
+                    .Build()
+            };
         }
 
         IEnumerator IEnumerable.GetEnumerator()

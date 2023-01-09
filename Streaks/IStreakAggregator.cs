@@ -151,7 +151,11 @@ internal sealed class CycleCalculator : ICycleCalculator
 
         if (currentDayNumber - startOfCycle >= cycleLengthDays)
         {
-            yield return new Cycle(currentDayNumber, cycleLengthDays, lastCycle.NeedToDo > 0 ? 1 : cycleOrder + 1, desiredAmount, 0);
+            cycleOrder++;
+            if (lastCycle.NeedToDo > 0) cycleOrder = 1;
+            if (currentDayNumber > lastCycle.NextCycleFirstDayNumber) cycleOrder = 1;
+
+            yield return new Cycle(currentDayNumber, cycleLengthDays, cycleOrder, desiredAmount, 0);
         }
     }
 
