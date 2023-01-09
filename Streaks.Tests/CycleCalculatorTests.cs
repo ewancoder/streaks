@@ -139,6 +139,28 @@ namespace Streaks.Tests
                     .StartStreak(11, 0)
                     .Build()
             };
+
+            yield return new object[]
+            {
+                11,
+                new ActivityEventBuilder()
+                    .StartActivity(1, 0, 5, 2)
+                    .Perform(1, 10, 10)
+                    .Perform(3, 5, 4)
+                    .Perform(4, 6, 2)
+                    .Perform(6, 0, 5)
+                    .Perform(8, 23, 5)
+                    .Perform(10, 5, 5)
+                    .Build(),
+                new CycleBuilder(2, 5)
+                    .StartStreak(1, 10)
+                    .AddCycle(6)
+                    .AddCycle(5)
+                    .AddCycle(5)
+                    .AddCycle(5)
+                    .AddCycle(0)
+                    .Build()
+            };
         }
 
         IEnumerator IEnumerable.GetEnumerator()

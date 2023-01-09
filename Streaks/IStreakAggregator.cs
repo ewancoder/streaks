@@ -146,11 +146,12 @@ internal sealed class CycleCalculator : ICycleCalculator
             accumulatedAmount += @event.Amount;
         }
 
-        yield return new Cycle(startOfCycle, cycleLengthDays, cycleOrder, desiredAmount, accumulatedAmount);
+        var lastCycle = new Cycle(startOfCycle, cycleLengthDays, cycleOrder, desiredAmount, accumulatedAmount);
+        yield return lastCycle;
 
         if (currentDayNumber - startOfCycle >= cycleLengthDays)
         {
-            yield return new Cycle(currentDayNumber, cycleLengthDays, 1, desiredAmount, 0);
+            yield return new Cycle(currentDayNumber, cycleLengthDays, lastCycle.NeedToDo > 0 ? 1 : cycleOrder + 1, desiredAmount, 0);
         }
     }
 
