@@ -50,7 +50,7 @@ while (true)
         .OrderBy(x => x.CurrentCycleDeadLineInDays)
         .ThenByDescending(x => x.NeedToDoInCurrentCycle))
     {
-        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles - 1, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
     }
     ngStreakTable.AddEmptyRow();
     foreach (var streak in streaks
