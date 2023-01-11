@@ -18,7 +18,9 @@ internal sealed class Dependencies
 
         _activityRepository = new ActivityRepository(_eventStore);
         _streakAggregator = new StreakAggregator(_eventStore, streakCalculator, cycleCalculator);
-        _output = new ConsoleOutput();
+        _output = new LoggingOutputDecorator(
+            new FileOutput(),
+            new ConsoleOutput());
         _tablePrinter = new TablePrinter(_output);
     }
 

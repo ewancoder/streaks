@@ -163,3 +163,63 @@ internal static class OutputExtensions
         output.WriteLine();
     }
 }
+
+internal sealed class LoggingOutputDecorator : IOutput
+{
+    private readonly IOutput _fileOutput;
+    private readonly IOutput _output;
+
+    public LoggingOutputDecorator(
+        IOutput fileOutput,
+        IOutput output)
+    {
+        _fileOutput = fileOutput;
+        _output = output;
+    }
+
+    public void Write(string value)
+    {
+        _output.Write(value);
+        _fileOutput.Write($"{DateTimeOffset.Now}\t\t{value}");
+    }
+
+    public void WriteLine()
+    {
+        _output.WriteLine();
+        _fileOutput.WriteLine();
+    }
+}
+
+internal sealed class FileOutput : IOutput
+{
+    private readonly string _fileName = "output.log";
+    private readonly object _lock = new object();
+
+    public void Write(string value)
+    {
+        lock (_lock)
+        {
+            var content = new StringBuilder(File.ReadAllText(GetFileName()));
+            content.Append(value);
+            File.WriteAllText(GetFileName(), content.ToString());
+        }
+    }
+
+    public void WriteLine()
+    {
+        lock (_lock)
+        {
+            if (!File.Exists(GetFileName()))
+                File.WriteAllText(GetFileName(), string.Empty);
+
+            var content = new StringBuilder(File.ReadAllText(GetFileName()));
+            content.AppendLine();
+            File.WriteAllText(GetFileName(), content.ToString());
+        }
+    }
+
+    private string GetFileName()
+    {
+        return $"{_fileName}-{DateTimeOffset.Now.ToString("yyyy-MM-dd-HH")}";
+    }
+}
