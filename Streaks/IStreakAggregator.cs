@@ -153,7 +153,10 @@ internal sealed class CycleCalculator : ICycleCalculator
         {
             cycleOrder++;
             if (lastCycle.NeedToDo > 0) cycleOrder = 1;
-            if (currentDayNumber > lastCycle.NextCycleFirstDayNumber) cycleOrder = 1;
+
+
+            // TODO: test "+cycle_length" part.
+            if (currentDayNumber > lastCycle.NextCycleFirstDayNumber + lastCycle.CycleLength) cycleOrder = 1;
 
             yield return new Cycle(currentDayNumber, cycleLengthDays, cycleOrder, desiredAmount, 0);
         }
