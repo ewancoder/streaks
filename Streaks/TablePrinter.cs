@@ -1,13 +1,24 @@
 ﻿using System.Text;
-using System.Windows.Markup;
 
 namespace Streaks;
+
+internal enum OutputColor
+{
+    Default = 1,
+    Green,
+    Red
+}
+
+internal sealed class RowOptions
+{
+    public OutputColor Color { get; set; } = OutputColor.Default;
+}
 
 internal sealed class Table
 {
     private readonly int _columnCount;
-    private string[] _headers;
-    private readonly List<string[]> _rows = new List<string[]>();
+    private KeyValuePair<RowOptions, string[]> _headers;
+    private readonly List<KeyValuePair<RowOptions, string[]>> _rows = new List<KeyValuePair<RowOptions, string[]>>();
 
     public Table(int columnCount)
     {
@@ -19,21 +30,19 @@ internal sealed class Table
         if (values.Count() != _columnCount)
             throw new ArgumentException("Count mismatch.", nameof(values));
 
-        _headers = values.ToArray();
+        _headers = new(new RowOptions(), values.ToArray());
     }
 
-    public void AddRow(IEnumerable<string> values)
+    public void AddRow(IEnumerable<string> values, RowOptions rowOptions)
     {
         if (values.Count() != _columnCount)
             throw new ArgumentException("Count mismatch.", nameof(values));
 
-        _rows.Add(values.ToArray());
+        _rows.Add(new(rowOptions, values.ToArray()));
     }
 
     public int ColumnCount => _columnCount;
-    public string[] OnlyHeaderRow => _headers;
-    public List<string[]> RowsIncludingHeader => new[] { _headers }.Concat(_rows).ToList();
-    public List<string[]> OnlyValueRows => _rows;
+    public List<KeyValuePair<RowOptions, string[]>> RowsIncludingHeader => new KeyValuePair<RowOptions, string[]>[] { _headers }.Concat(_rows).ToList();
 }
 
 internal static class TableExtensions
@@ -44,18 +53,24 @@ internal static class TableExtensions
     }
 
     public static void AddRow(this Table table, params string[] values)
+        => AddRow(table, new RowOptions(), values);
+
+    public static void AddRow(this Table table, RowOptions rowOptions, params string[] values)
     {
-        table.AddRow(values);
+        table.AddRow(values, rowOptions);
     }
 
     public static void AddRow(this Table table, params object[] values)
+        => AddRow(table, new RowOptions(), values);
+
+    public static void AddRow(this Table table, RowOptions rowOptions, params object[] values)
     {
-        table.AddRow(values.Select(x => x.ToString()));
+        table.AddRow(values.Select(x => x.ToString()), rowOptions);
     }
 
     public static void AddEmptyRow(this Table table)
     {
-        table.AddRow(Enumerable.Repeat(string.Empty, table.ColumnCount));
+        table.AddRow(Enumerable.Repeat(string.Empty, table.ColumnCount), new RowOptions());
     }
 }
 
@@ -89,6 +104,8 @@ internal sealed class TablePrinter : ITablePrinter
 
         foreach (var row in table.RowsIncludingHeader)
         {
+            _output.SetColor(row.Key.Color);
+
             DrawPadding(options.TablePadding);
 
             var lineBuilder = new StringBuilder();
@@ -96,7 +113,7 @@ internal sealed class TablePrinter : ITablePrinter
             {
                 lineBuilder.Append(new string(' ', options.ValuePadding));
 
-                lineBuilder.Append(row[i].PadRight(columnSizes[i]));
+                lineBuilder.Append(row.Value[i].PadRight(columnSizes[i]));
 
                 lineBuilder.Append(new string(' ', options.ValuePadding));
             }
@@ -105,6 +122,8 @@ internal sealed class TablePrinter : ITablePrinter
 
             DrawPadding(options.TablePadding);
             _output.WriteLine();
+
+            _output.SetColor(OutputColor.Default);
         }
 
         DrawMargin(options.TableMargin);
@@ -119,10 +138,10 @@ internal sealed class TablePrinter : ITablePrinter
 
         foreach (var rowValues in allRows)
         {
-            for (var i = 0; i < rowValues.Length; i++)
+            for (var i = 0; i < rowValues.Value.Length; i++)
             {
-                if (rowValues[i].Length > sizes[i])
-                    sizes[i] = rowValues[i].Length;
+                if (rowValues.Value[i].Length > sizes[i])
+                    sizes[i] = rowValues.Value[i].Length;
             }
         }
 
@@ -147,12 +166,30 @@ internal interface IOutput
 {
     void Write(string value);
     void WriteLine();
+    void SetColor(OutputColor color);
 }
 
 internal sealed class ConsoleOutput : IOutput
 {
     public void Write(string value) => Console.Write(value);
     public void WriteLine() => Console.WriteLine();
+    public void SetColor(OutputColor color)
+    {
+        switch (color)
+        {
+            case OutputColor.Default:
+                Console.ForegroundColor = ConsoleColor.White;
+                break;
+            case OutputColor.Green:
+                Console.ForegroundColor = ConsoleColor.Green;
+                break;
+            case OutputColor.Red:
+                Console.ForegroundColor = ConsoleColor.Red;
+                break;
+            default:
+                throw new NotSupportedException("Unsupported color.");
+        }
+    }
 }
 
 internal static class OutputExtensions
@@ -177,6 +214,12 @@ internal sealed class LoggingOutputDecorator : IOutput
         _output = output;
     }
 
+    public void SetColor(OutputColor color)
+    {
+        _output.SetColor(color);
+        _fileOutput.SetColor(color);
+    }
+
     public void Write(string value)
     {
         _output.Write(value);
@@ -194,6 +237,19 @@ internal sealed class FileOutput : IOutput
 {
     private readonly string _fileName = "output.log";
     private readonly object _lock = new object();
+    private OutputColor _previousColor = OutputColor.Default;
+
+    public void SetColor(OutputColor color)
+    {
+        if (_previousColor != color)
+        {
+            var content = new StringBuilder(File.ReadAllText(GetFileName()));
+            content.Append($"(((COLOR:{color.ToString()})))");
+            File.WriteAllText(GetFileName(), content.ToString());
+
+            _previousColor = color;
+        }
+    }
 
     public void Write(string value)
     {

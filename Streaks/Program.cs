@@ -58,27 +58,32 @@ while (true)
 
     var doneStreaks = shownStreaks.Where(x => x.CurrentCycleIsDone);
 
-    var ngStreakTable = new Table(6);
-    ngStreakTable.AddHeader("Activity ID", "Successful streak", "Need to do in this cycle", "This cycle deadline (days)", "Next cycle deadline (days)", "Need to do in time");
+    var ngStreakTable = new Table(7);
+    ngStreakTable.AddHeader("Activity ID", "Successful streak", "Need to do in this cycle", "This cycle deadline (days)", "Next cycle deadline (days)", "Need to do in time", "Summary");
     foreach (var streak in notStartedStreaks
         .OrderBy(x => x.CurrentCycleDeadLineInDays)
         .ThenByDescending(x => x.NeedToDoInCurrentCycle))
     {
-        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles - 1, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+        var summary = $"{streak.NeedToDoInCurrentCycle} / {activityDesiredAmountDict[streak.ActivityId]} in {streak.NeedToDoInTime}";
+        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles - 1, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime, summary);
     }
     ngStreakTable.AddEmptyRow();
     foreach (var streak in startedStreaks
         .OrderBy(x => x.CurrentCycleDeadLineInDays)
         .ThenByDescending(x => x.NeedToDoInCurrentCycle))
     {
-        ngStreakTable.AddRow(streak.ActivityId, streak.SuccessfulCycles - 1, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+        var summary = $"{streak.NeedToDoInCurrentCycle} / {activityDesiredAmountDict[streak.ActivityId]} in {streak.NeedToDoInTime}";
+        ngStreakTable.AddRow(
+            new RowOptions { Color = streak.CurrentCycleDeadLineInDays <= 2 ? OutputColor.Red : OutputColor.Green },
+            streak.ActivityId, streak.SuccessfulCycles - 1, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime, summary);
     }
     ngStreakTable.AddEmptyRow();
     foreach (var streak in doneStreaks
         .OrderBy(x => x.CurrentCycleDeadLineInDays)
         .ThenByDescending(x => x.NeedToDoInCurrentCycle))
     {
-        ngStreakTable.AddRow($"(done) {streak.ActivityId}", streak.SuccessfulCycles, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime);
+        var summary = $"{streak.NeedToDoInCurrentCycle} / {activityDesiredAmountDict[streak.ActivityId]} in {streak.NeedToDoInTime}";
+        ngStreakTable.AddRow($"(done) {streak.ActivityId}", streak.SuccessfulCycles, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime, summary);
     }
     tablePrinter.Print(ngStreakTable, new TablePrinterOptions());
 
