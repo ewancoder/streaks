@@ -85,6 +85,8 @@ internal sealed class TablePrinterOptions
     public int TablePadding { get; set; } = 1;
     public int ValuePadding { get; set; } = 1;
     public bool Striped { get; set; }
+    public Dictionary<int, int> ColumnLeftPadding { get; }
+        = new Dictionary<int, int>();
 }
 
 internal sealed class TablePrinter : ITablePrinter
@@ -112,6 +114,12 @@ internal sealed class TablePrinter : ITablePrinter
             for (var i = 0; i < columnSizes.Count; i++)
             {
                 lineBuilder.Append(new string(' ', options.ValuePadding));
+
+                if (options.ColumnLeftPadding.ContainsKey(i + 1))
+                {
+                    var additionalPadding = options.ColumnLeftPadding[i + 1];
+                    lineBuilder.Append(new string(' ', additionalPadding));
+                }
 
                 lineBuilder.Append(row.Value[i].PadRight(columnSizes[i]));
 

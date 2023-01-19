@@ -85,7 +85,11 @@ while (true)
         var summary = $"{streak.NeedToDoInCurrentCycle} / {activityDesiredAmountDict[streak.ActivityId]} in {streak.NeedToDoInTime}";
         ngStreakTable.AddRow($"(done) {streak.ActivityId}", streak.SuccessfulCycles, $"{streak.NeedToDoInCurrentCycle} / {activities.First(x => x.ActivityId == streak.ActivityId).DesiredAmount}", streak.CurrentCycleDeadLineInDays, streak.NextCycleDeadLineInDays, streak.NeedToDoInTime, summary);
     }
-    tablePrinter.Print(ngStreakTable, new TablePrinterOptions());
+
+    var options = new TablePrinterOptions();
+    options.ColumnLeftPadding[7] = 10;
+
+    tablePrinter.Print(ngStreakTable, options);
 
     string GetHumanTime(TimeSpan timespan)
     {
