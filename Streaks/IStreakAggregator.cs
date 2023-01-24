@@ -31,7 +31,8 @@ internal sealed class StreakCalculator : IStreakCalculator
             lastCycle.CycleOrder,
             lastCycle.NeedToDo,
             lastCycle.NextCycleFirstDayNumber - currentDayNumber,
-            lastCycle.NextCycleFirstDayNumber + lastCycle.CycleLength - currentDayNumber);
+            lastCycle.NextCycleFirstDayNumber + lastCycle.CycleLength - currentDayNumber,
+            "debug");
 
         return streakInfo;
     }
@@ -42,7 +43,8 @@ internal record StreakInfo(
     int SuccessfulCycles,
     int NeedToDoInCurrentCycle,
     int CurrentCycleDeadLineInDays,
-    int NextCycleDeadLineInDays)
+    int NextCycleDeadLineInDays,
+    string Debug)
 {
     public bool CurrentCycleIsDone => NeedToDoInCurrentCycle == 0;
     public string NeedToDoInTime
