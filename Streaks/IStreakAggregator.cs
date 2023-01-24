@@ -156,7 +156,8 @@ internal sealed class CycleCalculator : ICycleCalculator
 
 
             // TODO: test "+cycle_length" part.
-            if (currentDayNumber > lastCycle.NextCycleFirstDayNumber + lastCycle.CycleLength) cycleOrder = 1;
+            // TODO: Test sign >= and not just >.
+            if (currentDayNumber >= lastCycle.NextCycleFirstDayNumber + lastCycle.CycleLength) cycleOrder = 1;
 
             yield return new Cycle(currentDayNumber, cycleLengthDays, cycleOrder, desiredAmount, 0);
         }
